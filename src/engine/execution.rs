@@ -130,7 +130,9 @@ impl Display for ExecutionError {
             Self::ClockUnavailable => formatter.write_str("system clock is before UNIX epoch"),
             Self::ClientBuild(error) => write!(formatter, "HTTP client build failed: {error}"),
             Self::Http(error) => write!(formatter, "HTTP request failed: {error}"),
-            Self::ResponseDecode(error) => write!(formatter, "order response decode failed: {error}"),
+            Self::ResponseDecode(error) => {
+                write!(formatter, "order response decode failed: {error}")
+            }
             Self::ExchangeRejected { status, message } => {
                 write!(formatter, "exchange rejected order ({status}): {message}")
             }
@@ -160,8 +162,8 @@ impl ExecutionEngine {
     pub fn from_env() -> Result<Self, ExecutionError> {
         let api_key = env::var("BINANCE_API_KEY").unwrap_or_default();
         let api_secret = env::var("BINANCE_API_SECRET").unwrap_or_default();
-        let base_url = env::var("BINANCE_FUTURES_REST_URL")
-            .unwrap_or_else(|_| DEFAULT_BASE_URL.to_owned());
+        let base_url =
+            env::var("BINANCE_FUTURES_REST_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_owned());
         let live_enabled = env::var("LIVE_TRADING_ENABLED")
             .map(|value| value.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
