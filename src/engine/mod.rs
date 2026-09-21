@@ -360,11 +360,7 @@ mod tests {
     fn favorable_or_flat_slippage_does_not_fail_the_guard() {
         let engine = LiquidationEngine::production();
         let slippage = engine
-            .validate_execution_slippage(
-                Decimal::new(100, 0),
-                Decimal::new(999, 1),
-                TradeSide::Buy,
-            )
+            .validate_execution_slippage(Decimal::new(100, 0), Decimal::new(999, 1), TradeSide::Buy)
             .expect("favorable fill");
         assert_eq!(slippage, Decimal::ZERO);
     }
