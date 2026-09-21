@@ -9,15 +9,18 @@ import {
   ingestOpenInterest,
 } from '../src/analysis.js';
 
-function levels(price, quantity) {
-  return Array.from({ length: 10 }, (_, index) => [price + index * 0.1, quantity]);
+function levels(price, quantity, side) {
+  return Array.from({ length: 10 }, (_, index) => [
+    price + (side === 'bid' ? -index : index) * 0.1,
+    quantity,
+  ]);
 }
 
 function seedReadyState() {
   const state = createState('BTCUSDT');
   ingestDepth(state, {
-    bids: levels(99.9, 10),
-    asks: levels(100, 1),
+    bids: levels(99.9, 10, 'bid'),
+    asks: levels(100, 1, 'ask'),
     updateId: 1,
     eventTimeMs: 1_000,
   });
@@ -29,8 +32,8 @@ function seedReadyState() {
   });
   ingestOpenInterest(state, { value: 1_000, eventTimeMs: 1_000 });
   ingestDepth(state, {
-    bids: levels(100.9, 10),
-    asks: levels(101, 1),
+    bids: levels(100.9, 10, 'bid'),
+    asks: levels(101, 1, 'ask'),
     updateId: 2,
     eventTimeMs: 2_000,
   });
@@ -50,12 +53,16 @@ test('does not emit a demo result before real data is ready', () => {
   assert.equal(result.dataQuality.isReady, false);
 });
 
-test('computes real-data readiness and exposes CVD divergence', () => {
+test('computes real-data readiness and exposes liquidity-adjusted flow divergence', () => {
   const result = calculateDirectionalAnalysis(seedReadyState(), 2_100);
   assert.equal(result.status, 'READY');
   assert.equal(result.dataQuality.isReady, true);
-  assert.equal(result.metrics.cvd.status, 'DIVERGENCE');
-  assert.ok(result.metrics.cvd.score < 0);
+  assert.equal(result.metrics.lacvd.status, 'DIVERGENCE');
+  assert.ok(result.metrics.lacvd.score < 0);
+  assert.ok(result.metrics.depthWeightedObi.value > 0);
+  assert.equal(result.metrics.vpin.status, 'INSUFFICIENT_DATA');
+  assert.equal(result.metrics.oi.relationship, 'SHORT_COVERING');
+  assert.equal(result.signal.primary_trigger, 'DEPTH_WEIGHTED_OBI');
 });
 
 test('uses liquidation notional and distance instead of a fixed dollar trigger', () => {
@@ -75,17 +82,17 @@ test('uses liquidation notional and distance instead of a fixed dollar trigger',
 test('rejects duplicate or out-of-order depth updates', () => {
   const state = createState('BTCUSDT');
   ingestDepth(state, {
-    bids: levels(99.9, 1),
-    asks: levels(100, 1),
+    bids: levels(99.9, 1, 'bid'),
+    asks: levels(100, 1, 'ask'),
     updateId: 4,
     eventTimeMs: 1_000,
   });
   ingestDepth(state, {
-    bids: levels(99.9, 2),
-    asks: levels(100, 2),
+    bids: levels(99.9, 2, 'bid'),
+    asks: levels(100, 2, 'ask'),
     updateId: 4,
     eventTimeMs: 1_100,
   });
   assert.equal(state.health.depthSequenceOk, false);
-  assert.equal(state.depth.bidVolumeTop10, 10);
+  assert.equal(state.depth.bidVolumeTop5, 5);
 });

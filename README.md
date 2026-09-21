@@ -14,7 +14,8 @@ This first commit contains deterministic, testable risk primitives:
 - Direction-aware execution-slippage validation
 - HMAC-SHA256 Binance order-request builder with an explicit live-trading gate
 - Node.js collector for `aggTrade`, `depth20@100ms`, `forceOrder`, and Open Interest
-- Normalized OBI, CVD divergence, liquidation-flow, and OI divergence analysis
+- Depth-weighted OBI, liquidity-adjusted CVD, VPIN, liquidation-flow, and dOI/dt divergence analysis
+- Volatility-regime-dependent nonlinear evidence fusion
 - Unit tests for the trigger and kill conditions
 
 The module does not pretend that public exchange feeds expose a matching-engine mempool. `aggTrade` is a post-match event, so this project does not implement front-running or claim priority over another participant. Execution adapters will be a separate, explicitly guarded layer.

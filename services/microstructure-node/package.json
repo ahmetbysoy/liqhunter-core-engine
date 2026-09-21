@@ -13,6 +13,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "undici": "6.21.2",
     "ws": "8.18.0"
   }
 }

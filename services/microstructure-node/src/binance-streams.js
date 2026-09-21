@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { Pool } from 'undici';
 import {
   calculateDirectionalAnalysis,
   ingestAggTrade,
@@ -9,8 +10,8 @@ import {
 
 const REST_URL = process.env.BINANCE_FUTURES_REST_URL ?? 'https://fapi.binance.com';
 const WS_URL = process.env.BINANCE_FUTURES_WS_URL ?? 'wss://fstream.binance.com/ws';
-const OI_POLL_MS = 3_000;
-const OI_TIMEOUT_MS = 2_000;
+const OI_POLL_MS = 500;
+const OI_TIMEOUT_MS = 450;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 
 export class BinanceMicrostructureStreams {
@@ -20,6 +21,12 @@ export class BinanceMicrostructureStreams {
     this.onAnalysis = onAnalysis;
     this.logger = logger;
     this.connections = new Map();
+    this.restPool = new Pool(REST_URL, {
+      connections: 1,
+      pipelining: 1,
+      keepAliveTimeout: 10_000,
+      keepAliveMaxTimeout: 60_000,
+    });
     this.oiTimer = null;
     this.oiRequestInFlight = false;
     this.lastAnalysisEmitMs = 0;
@@ -71,6 +78,7 @@ export class BinanceMicrostructureStreams {
       connection.ws?.close();
     }
     this.connections.clear();
+    void this.restPool.close();
   }
 
   connect(id, url, onMessage) {
@@ -117,14 +125,19 @@ export class BinanceMicrostructureStreams {
     if (this.stopped || this.oiRequestInFlight) return;
     this.oiRequestInFlight = true;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), OI_TIMEOUT_MS);
+    const abortTimer = setTimeout(() => controller.abort(), OI_TIMEOUT_MS);
     try {
-      const response = await fetch(
-        `${REST_URL}/fapi/v1/openInterest?symbol=${this.symbol.toUpperCase()}`,
-        { signal: controller.signal },
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = await response.json();
+      const path = `/fapi/v1/openInterest?symbol=${this.symbol.toUpperCase()}`;
+      const response = await this.restPool.request({
+        path,
+        method: 'GET',
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw new Error(`HTTP ${response.statusCode}`);
+      }
+      const payload = JSON.parse(await response.body.text());
       ingestOpenInterest(this.state, {
         value: payload.openInterest,
         eventTimeMs: Number(payload.time) || Date.now(),
@@ -134,7 +147,7 @@ export class BinanceMicrostructureStreams {
       this.state.health.streamErrors += 1;
       this.logger.error('[open-interest] request error', error.message);
     } finally {
-      clearTimeout(timeout);
+      clearTimeout(abortTimer);
       this.oiRequestInFlight = false;
     }
   }
