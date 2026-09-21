@@ -1,0 +1,12 @@
+[package]
+name = "liqhunter-core-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Low-latency market-data risk and liquidation analysis primitives"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+rust_decimal = "1.36.0"
