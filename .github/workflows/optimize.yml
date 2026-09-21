@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -44,11 +44,27 @@ jobs:
         env:
           TARGET_SYMBOL: BTCUSDT
           LOOKBACK_HOURS: 168
+          OUTPUT_DIR: public
+
+      - name: Normalize report filename for the dashboard
+        run: |
+          generated=$(ls public/optimizer-*.json | head -n 1)
+          cp "$generated" public/latest-report.json
 
       - name: Upload optimizer report
         uses: actions/upload-artifact@v4
         with:
           name: optimizer-report
-          path: artifacts/
+          path: public/optimizer-*.json
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish report for the dashboard
+        run: |
+          git config user.name "LiqHunter Engine"
+          git config user.email "engine@local"
+          git add -f public/latest-report.json
+          git diff --staged --quiet || git commit -m "chore: publish latest optimizer report"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
