@@ -1,6 +1,6 @@
 # LiqHunter Core Engine
 
-Private Rust core and Node.js market-data sidecar for Binance Futures microstructure analysis.
+Public Rust core and Node.js market-data sidecar for Binance Futures microstructure analysis.
 
 ## Current scope
 
@@ -18,7 +18,7 @@ This first commit contains deterministic, testable risk primitives:
 - Volatility-regime-dependent nonlinear evidence fusion
 - Unit tests for the trigger and kill conditions
 
-The module does not pretend that public exchange feeds expose a matching-engine mempool. `aggTrade` is a post-match event, so this project does not implement front-running or claim priority over another participant. Execution adapters will be a separate, explicitly guarded layer.
+The module does not pretend that public exchange feeds expose a matching-engine mempool. `aggTrade` is a post-match event, so this project does not implement front-running or claim priority over another participant. Execution is a separate, explicitly guarded layer.
 
 The execution adapter is now present as `src/engine/execution.rs`, but it is disabled unless `LIVE_TRADING_ENABLED=true` is explicitly set. It performs no automatic retries, so a timeout cannot silently duplicate an order. It also does not log secrets. Exchange symbol filters, account state, clock synchronization, daily-loss accounting, and a hard-kill supervisor must be completed before any live enablement.
 
@@ -56,3 +56,7 @@ SYMBOL=BTCUSDT npm start
 ```
 
 The service prints newline-delimited JSON. Its score is a directional bias, not a calibrated probability or an order instruction. It does not claim access to a centralized exchange matching queue.
+
+## Offline replay
+
+`services/microstructure-node/src/replay.js` provides a deterministic evaluator for ordered historical events. It reuses the same ingestion and analysis functions as the live service, records each `READY` signal, settles it after a configurable forward horizon, and reports directional accuracy and signed forward return in basis points. Replay is evaluation tooling only; it is not a live-data fallback and does not prove profitability.

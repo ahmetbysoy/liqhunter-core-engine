@@ -30,3 +30,7 @@ Allowed symbols are `BTCUSDT` and `ETHUSDT`. Set `BINANCE_FUTURES_REST_URL` and 
 - Implied liquidation clusters are inferred OI-build price bins, not observable exchange liquidation prices.
 - The score is a directional bias, not a calibrated probability and not an order instruction.
 - Missing or stale data returns `DATA_INCOMPLETE`; no fallback values are generated.
+
+## Offline replay
+
+The `replayEvents(events, options)` helper in `src/replay.js` evaluates ordered historical events with the same analysis path used by the live collector. It reports settled and pending predictions, directional accuracy, and signed forward return in basis points. This is deterministic evaluation tooling only; it is not a runtime fallback and does not establish profitability.
