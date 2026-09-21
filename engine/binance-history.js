@@ -2,6 +2,15 @@ const FUTURES_REST = 'https://fapi.binance.com';
 
 export const ONE_MINUTE_MS = 60_000;
 
+export class DataSourceUnavailableError extends Error {
+  constructor(reason, detail) {
+    super(`data source unavailable: ${reason}`);
+    this.name = 'DataSourceUnavailableError';
+    this.reason = reason;
+    this.detail = detail;
+  }
+}
+
 export class BinanceHistoryClient {
   constructor({ baseUrl = FUTURES_REST, fetchImpl = fetch, maxRetries = 3, minDelayMs = 120 } = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -22,6 +31,18 @@ export class BinanceHistoryClient {
     for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
       await this.throttle();
       const response = await this.fetchImpl(url, { headers: { accept: 'application/json' } });
+      if (response.status === 451) {
+        throw new DataSourceUnavailableError(
+          'geo_blocked',
+          `HTTP 451 from ${url}. Binance refuses this egress location; retrying will not help.`,
+        );
+      }
+      if (response.status === 403) {
+        throw new DataSourceUnavailableError(
+          'forbidden',
+          `HTTP 403 from ${url}. The egress IP is blocked by the exchange.`,
+        );
+      }
       if (response.status === 429 || response.status === 418) {
         const retryAfterMs = Number(response.headers?.get?.('retry-after') ?? 0) * 1_000;
         const backoffMs = Math.max(retryAfterMs, 1_000 * 2 ** attempt);

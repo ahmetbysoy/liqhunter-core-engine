@@ -48,23 +48,32 @@ jobs:
 
       - name: Normalize report filename for the dashboard
         run: |
-          generated=$(ls public/optimizer-*.json | head -n 1)
-          cp "$generated" public/latest-report.json
+          generated=$(ls public/optimizer-*.json 2>/dev/null | head -n 1 || true)
+          if [ -n "$generated" ]; then
+            cp "$generated" public/latest-report.json
+            echo "report=$generated" >> "$GITHUB_OUTPUT"
+          else
+            echo "No optimizer report produced this run; publishing status only."
+            rm -f public/latest-report.json
+          fi
+        id: normalize
 
-      - name: Upload optimizer report
+      - name: Upload optimizer output
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: optimizer-report
-          path: public/optimizer-*.json
-          if-no-files-found: error
+          name: optimizer-output
+          path: public/
+          if-no-files-found: warn
           retention-days: 14
 
-      - name: Publish report for the dashboard
+      - name: Publish latest output for the dashboard
+        if: always()
         run: |
           git config user.name "LiqHunter Engine"
           git config user.email "engine@local"
-          git add -f public/latest-report.json
-          git diff --staged --quiet || git commit -m "chore: publish latest optimizer report"
+          git add -f public/latest-report.json public/status.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: publish latest optimizer output"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

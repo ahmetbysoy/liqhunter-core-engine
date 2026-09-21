@@ -6,33 +6,29 @@ const REPORT_PATHS = [
   'artifacts/latest-report.json',
 ];
 
+const STATUS_PATHS = ['status.json'];
+
 export default function App() {
   const [report, setReport] = useState(null);
+  const [runStatus, setRunStatus] = useState(null);
   const [status, setStatus] = useState('loading');
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      for (const path of REPORT_PATHS) {
-        try {
-          const response = await fetch(`${path}?t=${Date.now()}`);
-          if (!response.ok) continue;
-          const data = await response.json();
-          if (!cancelled) {
-            setReport(data);
-            setStatus('ready');
-          }
-          return;
-        } catch {
-          continue;
-        }
+      const statusPayload = await firstJson(STATUS_PATHS);
+      if (!cancelled) setRunStatus(statusPayload);
+
+      const reportPayload = await firstJson(REPORT_PATHS);
+      if (cancelled) return;
+
+      if (reportPayload) {
+        setReport(reportPayload);
+        setStatus('ready');
+        return;
       }
-      if (!cancelled) {
-        setStatus('missing');
-        setError('No optimizer report found yet. Run the Replay & Optimization Engine workflow.');
-      }
+      setStatus(statusPayload ? 'skipped' : 'missing');
     }
 
     load();
@@ -42,7 +38,7 @@ export default function App() {
   }, []);
 
   const best = report?.best;
-  const verdict = useMemo(() => describeVerdict(report), [report]);
+  const verdict = useMemo(() => describeVerdict(report, runStatus, status), [report, runStatus, status]);
 
   return (
     <main className="shell">
@@ -55,7 +51,11 @@ export default function App() {
       </header>
 
       {status === 'loading' && <p className="muted">Loading report…</p>}
-      {status === 'missing' && <p className="muted">{error}</p>}
+      {status === 'missing' && (
+        <p className="muted">
+          No report yet. Run the Replay &amp; Optimization Engine workflow to generate one.
+        </p>
+      )}
 
       {status === 'ready' && report && (
         <>
@@ -144,7 +144,16 @@ function Card({ label, value, tone }) {
   );
 }
 
-function describeVerdict(report) {
+function describeVerdict(report, runStatus, status) {
+  if (status === 'skipped') {
+    return {
+      title: 'RUN SKIPPED: DATA SOURCE UNAVAILABLE',
+      detail:
+        runStatus?.detail
+        ?? 'The engine could not reach the exchange from the runner location. This is an environment limit, not an engine failure.',
+      tone: 'warn',
+    };
+  }
   if (!report) {
     return { title: 'NO DATA', detail: 'Waiting for a report.', tone: 'warn' };
   }
@@ -166,8 +175,22 @@ function describeVerdict(report) {
 
 function statusLabel(status) {
   if (status === 'ready') return 'REPORT LOADED';
+  if (status === 'skipped') return 'RUN SKIPPED';
   if (status === 'missing') return 'NO REPORT';
   return 'LOADING';
+}
+
+async function firstJson(paths) {
+  for (const path of paths) {
+    try {
+      const response = await fetch(`${path}?t=${Date.now()}`);
+      if (!response.ok) continue;
+      return await response.json();
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 function formatInt(value) {
