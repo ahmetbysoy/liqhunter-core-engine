@@ -1,0 +1,54 @@
+name: Replay & Optimization Engine
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Run engine tests
+        run: npm run test:engine
+
+  optimize:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run nightly replay optimization
+        run: node engine/run-optimizer.js
+        env:
+          TARGET_SYMBOL: BTCUSDT
+          LOOKBACK_HOURS: 168
+
+      - name: Upload optimizer report
+        uses: actions/upload-artifact@v4
+        with:
+          name: optimizer-report
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14

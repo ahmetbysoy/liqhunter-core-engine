@@ -1,12 +1,19 @@
 {
   "name": "liqhunter-core-engine",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "Server-side Binance Futures microstructure engine with look-ahead-free replay and out-of-sample threshold optimization",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "node --check engine/metrics.js && node --check engine/replay.js && node --check engine/optimizer.js && node --check engine/binance-history.js && node --check engine/run-optimizer.js",
+    "test:engine": "node --test \"engine/*.test.js\"",
+    "optimize": "node engine/run-optimizer.js"
   },
   "dependencies": {
     "react": "^19.1.1",
