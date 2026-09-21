@@ -1,6 +1,6 @@
 # LiqHunter Core Engine
 
-Private Rust core for Binance Futures market-data processing and liquidation-risk analysis.
+Private Rust core and Node.js market-data sidecar for Binance Futures microstructure analysis.
 
 ## Current scope
 
@@ -13,6 +13,8 @@ This first commit contains deterministic, testable risk primitives:
 - Configurable liquidation proximity and OBI thresholds
 - Direction-aware execution-slippage validation
 - HMAC-SHA256 Binance order-request builder with an explicit live-trading gate
+- Node.js collector for `aggTrade`, `depth20@100ms`, `forceOrder`, and Open Interest
+- Normalized OBI, CVD divergence, liquidation-flow, and OI divergence analysis
 - Unit tests for the trigger and kill conditions
 
 The module does not pretend that public exchange feeds expose a matching-engine mempool. `aggTrade` is a post-match event, so this project does not implement front-running or claim priority over another participant. Execution adapters will be a separate, explicitly guarded layer.
@@ -39,3 +41,17 @@ GitHub Actions runs formatting, tests, and Clippy on every push and pull request
 The repository is not connected to a live account and contains no API keys.
 
 `src/main.rs` wires the analysis and execution components for startup verification only. It intentionally does not start a live order loop.
+
+## Node microstructure sidecar
+
+The real public-feed collector lives in `services/microstructure-node/`. It has no mock or demo branch. Until price, depth, trade flow, and Open Interest freshness gates are satisfied, it returns `DATA_INCOMPLETE` and does not invent a signal.
+
+Run it with Node.js 22 or newer:
+
+```bash
+cd services/microstructure-node
+npm install --no-audit --no-fund
+SYMBOL=BTCUSDT npm start
+```
+
+The service prints newline-delimited JSON. Its score is a directional bias, not a calibrated probability or an order instruction. It does not claim access to a centralized exchange matching queue.

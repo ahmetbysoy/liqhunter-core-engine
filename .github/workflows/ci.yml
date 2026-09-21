@@ -1,4 +1,4 @@
-name: Rust CI
+name: Core CI
 
 on:
   push:
@@ -29,3 +29,26 @@ jobs:
 
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+
+  node-microstructure:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/microstructure-node
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Run microstructure tests
+        run: npm test
