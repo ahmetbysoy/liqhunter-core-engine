@@ -12,9 +12,12 @@ This first commit contains deterministic, testable risk primitives:
 - 200 ms default data-freshness guard
 - Configurable liquidation proximity and OBI thresholds
 - Direction-aware execution-slippage validation
+- HMAC-SHA256 Binance order-request builder with an explicit live-trading gate
 - Unit tests for the trigger and kill conditions
 
 The module does not pretend that public exchange feeds expose a matching-engine mempool. `aggTrade` is a post-match event, so this project does not implement front-running or claim priority over another participant. Execution adapters will be a separate, explicitly guarded layer.
+
+The execution adapter is now present as `src/engine/execution.rs`, but it is disabled unless `LIVE_TRADING_ENABLED=true` is explicitly set. It performs no automatic retries, so a timeout cannot silently duplicate an order. It also does not log secrets. Exchange symbol filters, account state, clock synchronization, daily-loss accounting, and a hard-kill supervisor must be completed before any live enablement.
 
 ## Configuration
 
@@ -34,3 +37,5 @@ The requested baseline is represented without credentials:
 GitHub Actions runs formatting, tests, and Clippy on every push and pull request.
 
 The repository is not connected to a live account and contains no API keys.
+
+`src/main.rs` wires the analysis and execution components for startup verification only. It intentionally does not start a live order loop.

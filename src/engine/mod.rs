@@ -2,6 +2,8 @@ use rust_decimal::Decimal;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
+pub mod execution;
+
 const BPS_DENOMINATOR: i64 = 10_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

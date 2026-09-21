@@ -9,4 +9,13 @@ license = "MIT"
 path = "src/lib.rs"
 
 [dependencies]
+hex = "=0.4.3"
+hmac = "=0.12.1"
+reqwest = { version = "=0.12.9", default-features = false, features = ["json", "rustls-tls"] }
 rust_decimal = "1.36.0"
+serde = { version = "=1.0.217", features = ["derive"] }
+serde_json = "=1.0.134"
+sha2 = "=0.10.8"
+tokio = { version = "=1.42.0", features = ["macros", "rt-multi-thread"] }
+url = "=2.5.4"
+zeroize = "=1.8.1"
