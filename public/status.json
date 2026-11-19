@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-11-18T11:19:00.828Z",
+  "generatedAt": "2026-11-19T11:17:44.955Z",
   "status": "SKIPPED_DATA_SOURCE_UNAVAILABLE",
   "symbol": "BTCUSDT",
   "reason": "geo_blocked",
-  "detail": "HTTP 451 from https://fapi.binance.com/fapi/v1/aggTrades?symbol=BTCUSDT&startTime=1794395880586&endTime=1795000680586&limit=1000. Binance refuses this egress location; retrying will not help.",
+  "detail": "HTTP 451 from https://fapi.binance.com/fapi/v1/aggTrades?symbol=BTCUSDT&startTime=1794482204845&endTime=1795087004845&limit=1000. Binance refuses this egress location; retrying will not help.",
   "hint": "Run the engine from an egress location the exchange allows, or route requests through an approved proxy."
 }
